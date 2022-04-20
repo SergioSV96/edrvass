@@ -1,0 +1,61 @@
+Fantastic Minerals and Where to Find Them
+
+# Context
+
+This dataset contains information about the predominant kinds of minerals registered in a newly found planet. 
+This information can be used to determine the likelihood of 100 x 100 meters cartographic observation 
+of the planet being covered by a particular mineral.
+
+
+# Metadata
+Number of variables: 13
+Target variable: mineralType
+Number of observations: 12621
+
+Variable details
+- temperatureFirstHalfPlanetRotation # Average temperature of the area during the first half of the planet's rotation in Farenheit
+- temperatureSecondHalfPlanetRotation # Average temperature of the area during the second half of the planet's rotation in Celsius
+- waterStreamDistanceX # X Distance to nearest water stream in feet
+- waterStreamDistanceY # Y Distance to nearest water stream in meters
+- planetSection # Planet section designation
+- cover # Cover found on the surface. Note: If cover is not found, the value is 0.
+- climaticZone # Climatic Zone of area ordered by their natural order
+- geoZone # Geological Zone of area, no natural order
+- rockSize #  Note: If rock size is not found, the value is 0.
+- magmaConcentrationDistance # Distance to nearest concentration of magma, such as volcanos or high temperature areas
+- mineralDensity # Density of the area underground in kg/m3
+- detectionDepth # Depth of mineral detection in kilometers
+- longitude # Orientation of the planet in degrees
+
+Target variable detail
+    - mineralType # Predominant variable found in the area
+
+    The Mineral Types found are:
+        - 1 Titanite 
+        - 2 Rupee
+        - 3 Milhousenite
+        - 4 Mythril Ore
+        - 5 Beeblebrox
+        - 6 Veritaserum
+        - 7 Pure Beskar
+
+*More details*
+
+The Planet Sections are:
+    - Mordor
+    - Tatoooine
+    - Hyrule
+ 
+Cover types are:
+    - 1 cover has 0.01% to 0.1% of stones on surface
+    - 2 cover has 0.1% to <3% of stones on surface 
+    - 3 cover has 3% to <15% of stones on surface
+    - 4 cover has 15% to <50% of stones on surface
+    - 5 cover has >50% of stones on surface
+    - 0 no cover found
+
+Rock sizes are:
+    - 1 Normal Stones
+    - 2 Large Mass
+    - 3 Broken Remains
+    - 0 No Rock size specified
