@@ -1,0 +1,1 @@
+{'n_neighbors': [5, 8, 10, 12, 15, 20], 'weights': ['uniform', 'distance'], 'metric': ['euclidean', 'manhattan']}
