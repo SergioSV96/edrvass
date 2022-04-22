@@ -1,0 +1,4 @@
+artifact_location: file:///home/sergio/repos/edrvass/fase6/models/mlruns/1
+experiment_id: '1'
+lifecycle_stage: active
+name: knclassifier

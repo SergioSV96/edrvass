@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/0/f64b934f99a24fbb89867e472c336ac3/artifacts
+end_time: 1650641544426
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+name: ''
+run_id: f64b934f99a24fbb89867e472c336ac3
+run_uuid: f64b934f99a24fbb89867e472c336ac3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1650641332064
+status: 3
+tags: []
+user_id: sergio
