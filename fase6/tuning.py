@@ -6,12 +6,19 @@ from sklearn.impute import KNNImputer, SimpleImputer
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, make_scorer, recall_score, precision_score
+from sklearn.decomposition import PCA
 from sklearn import set_config
+from sklearn.base import BaseEstimator, TransformerMixin
+
+from xgboost import XGBClassifier
 
 import numpy as np
 import pandas as pd
+import math
+
+import copy
 
 import mlflow
 
@@ -122,6 +129,148 @@ preprocessor_fixed = ColumnTransformer([
     verbose_feature_names_out=False, remainder='passthrough'
 )
 
+
+preprocessor_fixed2 = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        # ("cover", OrdinalEncoder(handle_unknown='error'), ['cover']),
+        ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error"), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        # ("rockSize", 'passthrough', ['rockSize']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='constant', fill_value=0), StandardScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", StandardScaler(), ['longitude']),
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
+
+best_preprocessor = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error"), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", StandardScaler(), ['longitude']),
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
+
+magma_ordinal_preprocessor = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error"), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        # ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']),
+        ("magmaConcentrationDistance", OrdinalEncoder(categories=[['VERY_CLOSE', 'CLOSE', 'MEDIUM', 'FAR', 'VERY_FAR']], handle_unknown = "error"), ['magmaConcentrationDistance']),
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", StandardScaler(), ['longitude']),
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
+
+preprocessor_robustScaler = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), RobustScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", RobustScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), RobustScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", RobustScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error"), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), RobustScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", RobustScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", RobustScaler(), ['longitude']),
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
+
+ordinals_best_preprocessor = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        # ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("cover", 'passthrough', ['cover']), # DIFERENTE best_preprocessor
+        ("climaticZone", 'passthrough', ['climaticZone']), # puede que el ordinal encoder sea indeferente, solo para bajar el rango
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']), # da peores resultados utilizando ordinal
+        ("magmaConcentrationDistance", OrdinalEncoder(categories=[['VERY_CLOSE', 'CLOSE', 'MEDIUM', 'FAR', 'VERY_FAR']], handle_unknown = "error"), ['magmaConcentrationDistance']), # invirtiendo el orden del encoding no hay diferencia
+        ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']), # no hay diferencia cambiando que sin cambiar de km a m
+        ("longitude", make_pipeline(FunctionTransformer(lambda f: f % 360, feature_names_out="one-to-one"), StandardScaler()), ['longitude']) # no hay diferencia haciendo % 360
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
+
+def euclidean_distance(x, y):
+    res = []
+    for i in range(len(x)):
+        res.append(math.sqrt(x[i]**2 + y[i]**2))
+    return np.array(res)
+
+
+class CreateVariables(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+        
+    def fit(self, X, y = None):
+        # waterStreamDistanceX = X[:,2]
+        # waterStreamDistanceY = X[:,3]
+        # waterStreamDistance = euclidean_distance(waterStreamDistanceX, waterStreamDistanceY)
+        # X = np.append(X, waterStreamDistance.reshape(-1, 1), axis=1)
+        return self
+
+    def transform(self, X, y = None):
+        waterStreamDistanceX = X[:,2]
+        waterStreamDistanceY = X[:,3]
+        waterStreamDistance = euclidean_distance(waterStreamDistanceX, waterStreamDistanceY)
+        X = np.append(X, waterStreamDistance.reshape(-1, 1), axis=1)
+        return X
+
+
 ### PARAMETERS FOR GRID SEARCH
 
 knn_params={
@@ -133,14 +282,38 @@ knn_params={
 randomForest_params = { 
     'model__n_estimators': [200, 500],
     'model__max_features': ['auto', 'sqrt', 'log2'],
-    'model__max_depth' : [4,5,6,7,8],
+    'model__max_depth' : [5,6,7],
     'model__criterion' :['gini', 'entropy']
 }
+
+log_reg_params = {
+    "model__C":np.logspace(-3,3,7),
+    "model__penalty":["l2"]}
+
+xgboost_params = {
+    'model__min_child_weight': [1, 5, 10],
+    'model__gamma': [0.5, 1, 1.5, 2, 5],
+    'model__subsample': [0.6, 0.8, 1.0],
+    'model__colsample_bytree': [0.6, 0.8, 1.0],
+    'model__max_depth': [3, 4, 5]
+}
+
 
 ### SCORES
 
 scores = ['accuracy', 'precision_macro']
 refit_metric = 'accuracy'
+
+
+### MODELS PARAMETERS
+
+# preprocessors = [preprocessor, preprocessor_all_robust, preprocessor_mixed]
+preprocessors = [best_preprocessor, ordinals_best_preprocessor]
+# models = [KNeighborsClassifier(), RandomForestClassifier()]
+models = [KNeighborsClassifier()]
+# params = {'KNeighborsClassifier':knn_params, 'RandomForestClassifier':randomForest_params}
+# params = {'LogisticRegression':log_reg_params}
+params = {'KNeighborsClassifier':knn_params}
 
 
 ### DATA
@@ -149,32 +322,18 @@ train = pd.read_csv('fase6/data/train_data.csv')
 test = pd.read_csv('fase6/data/test_data.csv')
 
 
-# preprocessors = [preprocessor, preprocessor_all_robust, preprocessor_mixed]
-preprocessors = [preprocessor]
-# models = [KNeighborsClassifier(), RandomForestClassifier()]
-models = [KNeighborsClassifier()]
-# params = {'KNeighborsClassifier':knn_params, 'RandomForestClassifier':randomForest_params}
-# params = {'LogisticRegression':{"model__C":np.logspace(-3,3,7), "model__penalty":["l2"]}}
-params = {'KNeighborsClassifier':knn_params}
-
-
-
-# train['temperatureFirstHalfPlanetRotation'] = train['temperatureFirstHalfPlanetRotation'].replace([-999.0], np.nan)
-# train['mineralDensity'] = train['mineralDensity'].replace([-999.0], np.nan)
-# train = train.dropna()
-# train = train.reset_index(drop=True)
 
 X = train.copy()
-y = train['mineralType']
+y = train['mineralType'].map(lambda x: x-1)
 
 y = y.drop(y[X['climaticZone']==3].index)
 X = X.drop(X[X['climaticZone']==3].index)
 y = y.drop(y[X['geoZone']==5].index.values)
 X = X.drop(X[X['geoZone']==5].index.values)
-# X['rockSize'] = X['rockSize'].map(rockSizeMapping)
+X['rockSize'] = X['rockSize'].map(rockSizeMapping)
 
 X = X.drop(['mineralType', 'id'], axis=1)
-# y = train['mineralType']
+
 
 
 def main(X, y):
@@ -197,8 +356,7 @@ def main(X, y):
     #         with mlflow.start_run(run_name=retrieve_name(preprocessor)) as run:
     #             grid.fit(preprocessor.fit_transform(X), y)
 
-    mlflow.sklearn.autolog()
-
+    
     for preprocessor in preprocessors:
         print(retrieve_name(preprocessor))
 
@@ -206,16 +364,24 @@ def main(X, y):
             model_name = type(model).__name__
             print(model_name)
 
+            mlflow.sklearn.autolog()
+
             mlflow.set_experiment(model_name)
 
             pipe = Pipeline([
                 ('preprocessor', preprocessor),
+                ('createVariables', CreateVariables()),
+                ('pca', PCA()),
                 ('model', model)
             ])
 
-            grid = GridSearchCV(pipe, cv=15, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
+            grid = GridSearchCV(pipe, cv=10, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
                 param_grid=params[model_name]
             )
+
+            # grid = RandomizedSearchCV(pipe, cv=15, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
+            #     param_distributions=params[model_name]
+            # )
 
             with mlflow.start_run(run_name=retrieve_name(preprocessor)) as run:
                 grid.fit(X, y)
