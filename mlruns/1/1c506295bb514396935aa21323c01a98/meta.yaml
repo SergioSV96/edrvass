@@ -1,0 +1,15 @@
+artifact_uri: file:///home/acampillos/Desktop/Projects/edrvass/edrvass/mlruns/1/1c506295bb514396935aa21323c01a98/artifacts
+end_time: 1650933670522
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 1c506295bb514396935aa21323c01a98
+run_uuid: 1c506295bb514396935aa21323c01a98
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1650933660587
+status: 3
+tags: []
+user_id: acampillos

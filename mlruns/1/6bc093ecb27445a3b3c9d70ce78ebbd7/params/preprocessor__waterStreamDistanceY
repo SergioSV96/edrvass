@@ -1,0 +1,3 @@
+Pipeline(steps=[('functiontransformer',
+                 FunctionTransformer(func=<function reciprocal_numeric at 0x7fc18294e280>,
+                                     validate=True))])

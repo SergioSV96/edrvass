@@ -1,0 +1,5 @@
+Pipeline(steps=[('createVariables', CreateVariables()),
+                ('preprocessor',
+                 ColumnTransformer(remainder='passthrough',
+                                   transformers=[('temperatureFirstHalfPlanetRotation',
+          ...

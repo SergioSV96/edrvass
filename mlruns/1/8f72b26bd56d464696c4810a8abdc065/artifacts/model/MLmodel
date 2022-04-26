@@ -1,0 +1,33 @@
+artifact_path: model
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    python_version: 3.8.10
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.1.dev0
+mlflow_version: 1.25.1
+model_uuid: f39710aff6cd43a98ce98b9f35f9b8e7
+run_id: 8f72b26bd56d464696c4810a8abdc065
+signature:
+  inputs: '[{"name": "climaticZone", "type": "double"}, {"name": "temperatureSecondHalfPlanetRotation",
+    "type": "double"}, {"name": "temperatureFirstHalfPlanetRotation", "type": "double"},
+    {"name": "mineralDensity", "type": "double"}, {"name": "longitude", "type": "double"},
+    {"name": "waterStreamDistanceY", "type": "double"}, {"name": "waterStreamDistanceX",
+    "type": "double"}, {"name": "detectionDepth", "type": "double"}, {"name": "cover_1",
+    "type": "integer"}, {"name": "cover_2", "type": "integer"}, {"name": "cover_3",
+    "type": "integer"}, {"name": "cover_4", "type": "integer"}, {"name": "rockSize_1",
+    "type": "integer"}, {"name": "rockSize_2", "type": "integer"}, {"name": "rockSize_3",
+    "type": "integer"}, {"name": "planetSection_Hyrule", "type": "integer"}, {"name":
+    "planetSection_Mordor", "type": "integer"}, {"name": "planetSection_Tatoooine",
+    "type": "integer"}, {"name": "geoZone_1", "type": "integer"}, {"name": "geoZone_2",
+    "type": "integer"}, {"name": "geoZone_7", "type": "integer"}, {"name": "magmaConcentrationDistance_CLOSE",
+    "type": "integer"}, {"name": "magmaConcentrationDistance_FAR", "type": "integer"},
+    {"name": "magmaConcentrationDistance_MEDIUM", "type": "integer"}, {"name": "magmaConcentrationDistance_VERY_CLOSE",
+    "type": "integer"}, {"name": "magmaConcentrationDistance_VERY_FAR", "type": "integer"}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+utc_time_created: '2022-04-26 00:28:02.133738'

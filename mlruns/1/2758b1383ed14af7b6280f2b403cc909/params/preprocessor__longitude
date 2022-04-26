@@ -1,0 +1,3 @@
+Pipeline(steps=[('functiontransformer',
+                 FunctionTransformer(func=<function log_numeric at 0x7f23bf3cdf70>,
+                                     validate=True))])

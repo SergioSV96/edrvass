@@ -1,0 +1,4 @@
+[('preprocessor', ColumnTransformer(remainder='passthrough',
+                  transformers=[('temperatureFirstHalfPlanetRotation',
+                                 Pipeline(steps=[('knnimputer',
+                                                  K...

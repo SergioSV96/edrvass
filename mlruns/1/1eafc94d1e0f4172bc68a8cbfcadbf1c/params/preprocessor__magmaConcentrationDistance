@@ -1,0 +1,2 @@
+OrdinalEncoder(categories=[['VERY_CLOSE', 'CLOSE', 'MEDIUM', 'FAR',
+                            'VERY_FAR']])

@@ -1,0 +1,4 @@
+[('temperatureFirstHalfPlanetRotation', Pipeline(steps=[('simpleimputer',
+                 SimpleImputer(missing_values=-999.0, strategy='median')),
+                ('functiontransformer-1',
+                 FunctionTransformer(feature_names_out='...

@@ -1,0 +1,4 @@
+Pipeline(steps=[('functiontransformer-1',
+                 FunctionTransformer(feature_names_out='one-to-one',
+                                     func=<function transform_numeric_preprocesor.<locals>.<lambda> at 0x7fd9a792e310>)),
+              ...

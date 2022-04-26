@@ -1,0 +1,5 @@
+Pipeline(steps=[('simpleimputer',
+                 SimpleImputer(missing_values=-999.0, strategy='median')),
+                ('functiontransformer',
+                 FunctionTransformer(func=<function sqrt_numeric at 0x7f636f2401f0>,
+             ...
