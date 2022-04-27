@@ -1,4 +1,3 @@
-from ssl import VERIFY_X509_STRICT
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import ColumnTransformer
@@ -15,6 +14,9 @@ from sklearn import set_config
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.neural_network import MLPClassifier
+# import autosklearn.classification
+# from autosklearn.metrics import accuracy
 
 
 from xgboost import XGBClassifier
@@ -28,6 +30,56 @@ import copy
 import mlflow
 
 from utils import retrieve_name
+
+
+### UTILS
+
+def log_numeric(X):
+    df = pd.DataFrame(X)
+    if (df < 0).values.any():
+        df = df + df.min().abs()
+    return df.apply(lambda x: np.log(x+1)).values
+
+def sqrt_numeric(X):
+    df = pd.DataFrame(X)
+    if (df < 0).values.any():
+        df = df + df.min().abs()
+    return df.apply(np.sqrt).values
+
+def reciprocal_numeric(X):
+    df = pd.DataFrame(X)
+    if (df < 0).values.any():
+        df = df + df.min().abs()
+    return df.apply(lambda x: np.reciprocal(x+1))
+
+def euclidean_distance(x, y):
+    res = []
+    for i in range(len(x)):
+        res.append(math.sqrt(x[i]**2 + y[i]**2))
+    return np.array(res)
+
+
+class CreateVariables(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+        
+    def fit(self, X, y = None):
+        return self
+
+    def transform(self, X, y = None):
+        # waterSteamDistance
+        waterStreamDistanceX = X[:,2]
+        waterStreamDistanceY = X[:,3]
+        waterStreamDistance = euclidean_distance(waterStreamDistanceX, waterStreamDistanceY)
+        X = np.append(X, waterStreamDistance.reshape(-1, 1), axis=1)
+
+        # temperature (both planet rotations)
+        temperatureFirstHalfPlanetRotation = X[:,0]
+        temperatureSecondHalfPlanetRotation = X[:,1]
+        meanTemperature = (temperatureFirstHalfPlanetRotation + temperatureSecondHalfPlanetRotation)/2
+        X = np.append(X, meanTemperature.reshape(-1, 1), axis=1)
+
+        return X
 
 
 
@@ -91,24 +143,6 @@ preprocessor_mixed = ColumnTransformer([
 )
 
 rockSizeMapping = {0:0, 1:2, 2:3, 3:1}
-# preprocessor_fixed = ColumnTransformer([
-#         # (name, transformer, columns)
-#         ("temperatureFirstHalfPlanetRotation", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), RobustScaler()), ['temperatureFirstHalfPlanetRotation']),
-#         ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
-#         ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), RobustScaler()), ['waterStreamDistanceX']),
-#         ("waterStreamDistanceY", RobustScaler(), ['waterStreamDistanceY']),
-#         ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
-#         ("cover", OrdinalEncoder(handle_unknown='error'), ['cover']),
-#         ("climaticZone", OneHotEncoder(handle_unknown="error"), ['climaticZone']),
-#         ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
-#         ("rockSize", 'passthrough', ['rockSize']),
-#         ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
-#         ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
-#         ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
-#         ("longitude", make_pipeline(FunctionTransformer(lambda f: f % 360, feature_names_out="one-to-one"), StandardScaler()), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
-#     ],
-#     verbose_feature_names_out=False, remainder='passthrough'
-# )
 
 preprocessor_fixed = ColumnTransformer([
         # (name, transformer, columns)
@@ -313,8 +347,8 @@ iterativeImputer_preprocessor = ColumnTransformer([
         ("mineralDensity", make_pipeline(IterativeImputer(missing_values=-999.0, estimator=LogisticRegression()), StandardScaler()), ['mineralDensity']),
         # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
         ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
-        ("longitude", StandardScaler(), ['longitude']),
-        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360
+        ("longitude", StandardScaler(), ['longitude'])
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360,
     ],
     verbose_feature_names_out=False, remainder='passthrough'
 )
@@ -342,25 +376,28 @@ xgboost_preprocessor = ColumnTransformer([ # NaN values
     verbose_feature_names_out=False, remainder='passthrough'
 )
 
-
-
-def log_numeric(X):
-    df = pd.DataFrame(X)
-    if (df < 0).values.any():
-        df = df + df.min().abs()
-    return df.apply(lambda x: np.log(x+1)).values
-
-def sqrt_numeric(X):
-    df = pd.DataFrame(X)
-    if (df < 0).values.any():
-        df = df + df.min().abs()
-    return df.apply(np.sqrt).values
-
-def reciprocal_numeric(X):
-    df = pd.DataFrame(X)
-    if (df < 0).values.any():
-        df = df + df.min().abs()
-    return df.apply(lambda x: np.reciprocal(x+1))
+test_prep = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(IterativeImputer(missing_values=-999.0, estimator=LogisticRegression()), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        ("cover", OrdinalEncoder(handle_unknown='error', categories=[[0,1,2,3,4,5]]), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error", categories=[[2,3,4,5,6,7,8]]), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error", categories=[[1,2,3,4,5,6,7]]), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(IterativeImputer(missing_values=-999.0, estimator=LogisticRegression()), StandardScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", StandardScaler(), ['longitude'])
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360,
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
 
 
 def transform_numeric_preprocesor(transform):
@@ -447,39 +484,30 @@ test_preprocessor = ColumnTransformer([
     verbose_feature_names_out=False, remainder='passthrough'
 )
 
+iterativeImputer_preprocessor2 = ColumnTransformer([
+        # (name, transformer, columns)
+        ("temperatureFirstHalfPlanetRotation", make_pipeline(IterativeImputer(missing_values=-999.0), FunctionTransformer(lambda f: (f - 32) / 1.8, feature_names_out="one-to-one"), RobustScaler()), ['temperatureFirstHalfPlanetRotation']),
+        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
+        ("waterStreamDistanceX", make_pipeline(FunctionTransformer(lambda f: f * 0.3048, feature_names_out="one-to-one"), StandardScaler()), ['waterStreamDistanceX']),
+        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
+        ("planetSection", OneHotEncoder(handle_unknown = "ignore"), ['planetSection']),
+        ("cover", OneHotEncoder(handle_unknown='error', drop='first'), ['cover']),
+        ("climaticZone", OrdinalEncoder(handle_unknown="error"), ['climaticZone']),
+        ("geoZone", OneHotEncoder(handle_unknown = "error"), ['geoZone']),
+        ("rockSize", OneHotEncoder(handle_unknown = "error", drop='first'), ['rockSize']),
+        ("magmaConcentrationDistance", OneHotEncoder(handle_unknown = "ignore"), ['magmaConcentrationDistance']), # one-hot encode the rockSize column and drop the first column (the one with the missing values == 0) TODO: use Ordinal Encoder?
+        # ("mineralDensity", StandardScaler(), ['mineralDensity']), # imputar valor de -999.0
+        # ("mineralDensity", make_pipeline(SimpleImputer(missing_values=-999.0, strategy='median'), StandardScaler()), ['mineralDensity']),
+        ("mineralDensity", make_pipeline(IterativeImputer(missing_values=-999.0), RobustScaler()), ['mineralDensity']),
+        # ("detectionDepth", make_pipeline(FunctionTransformer(lambda f: f * 1000, feature_names_out="one-to-one"), StandardScaler()), ['detectionDepth']),
+        ("detectionDepth", StandardScaler(), ['detectionDepth']), # pass through the column unchanged TODO: convert km to m?
+        ("longitude", StandardScaler(), ['longitude'])
+        # ("longitude", StandardScaler(), ['longitude']), # pass through the column unchanged TODO: values > 360? do x - 360,
+    ],
+    verbose_feature_names_out=False, remainder='passthrough'
+)
 
-def euclidean_distance(x, y):
-    res = []
-    for i in range(len(x)):
-        res.append(math.sqrt(x[i]**2 + y[i]**2))
-    return np.array(res)
 
-
-class CreateVariables(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        pass
-        
-    def fit(self, X, y = None):
-        # waterStreamDistanceX = X[:,2]
-        # waterStreamDistanceY = X[:,3]
-        # waterStreamDistance = euclidean_distance(waterStreamDistanceX, waterStreamDistanceY)
-        # X = np.append(X, waterStreamDistance.reshape(-1, 1), axis=1)
-        return self
-
-    def transform(self, X, y = None):
-        # waterSteamDistance
-        waterStreamDistanceX = X[:,2]
-        waterStreamDistanceY = X[:,3]
-        waterStreamDistance = euclidean_distance(waterStreamDistanceX, waterStreamDistanceY)
-        X = np.append(X, waterStreamDistance.reshape(-1, 1), axis=1)
-
-        # # temperature (both planet rotations)
-        # temperatureFirstHalfPlanetRotation = X[:,0]
-        # temperatureSecondHalfPlanetRotation = X[:,1]
-        # meanTemperature = (temperatureFirstHalfPlanetRotation + temperatureSecondHalfPlanetRotation)/2
-        # X = np.append(X, meanTemperature.reshape(-1, 1), axis=1)
-
-        return X
 
 
 
@@ -510,6 +538,12 @@ xgboost_params = {
     'model__max_depth': [3, 4, 5]
 }
 
+mlp_params = {
+    'model__solver': ['lbfgs', 'sgd', 'adam'],
+    'model__max_iter': [1000],
+    'model__learning_rate': ['constant', 'invscaling', 'adaptive']
+}
+
 pca_params = {
     'pca__n_components': [None]
 }
@@ -523,13 +557,11 @@ refit_metric = 'accuracy'
 
 ### MODELS PARAMETERS
 
-# preprocessors = [preprocessor, preprocessor_all_robust, preprocessor_mixed]
-preprocessors = [test_preprocessor]
-# models = [KNeighborsClassifier(), RandomForestClassifier()]
-models = [KNeighborsClassifier()]
-# params = {'KNeighborsClassifier':knn_params, 'RandomForestClassifier':randomForest_params}
-# params = {'LogisticRegression':log_reg_params}
-params = {'KNeighborsClassifier':knn_params}
+preprocessors = [iterativeImputer_preprocessor2]
+models = [MLPClassifier()]
+params = {'MLPClassifier':mlp_params}
+
+
 
 
 ### DATA
@@ -540,12 +572,13 @@ test = pd.read_csv('fase6/data/test_data.csv')
 
 X = train.copy()
 y = train['mineralType'].map(lambda x: x-1)
+# y = train['mineralType']
 
 y = y.drop(y[X['climaticZone']==3].index)
 X = X.drop(X[X['climaticZone']==3].index)
 y = y.drop(y[X['geoZone']==5].index.values)
 X = X.drop(X[X['geoZone']==5].index.values)
-X['rockSize'] = X['rockSize'].map(rockSizeMapping) # no parece hacer demasiado
+# X['rockSize'] = X['rockSize'].map(rockSizeMapping) # no parece hacer demasiado
 
 X = X.drop(['mineralType', 'id'], axis=1)
 
@@ -558,58 +591,25 @@ X = X.drop(['mineralType', 'id'], axis=1)
 # X = X.drop(X[X['mineralDensity']==-999.0].index.values)
 
 
-# Transformations
-X['temperatureFirstHalfPlanetRotation'] = (X['temperatureFirstHalfPlanetRotation'] - 32) / 1.8 # to Celsius
-X['waterStreamDistanceX'] = X['waterStreamDistanceX'] * 0.3048 # to meters
+# # Transformations
+# X['temperatureFirstHalfPlanetRotation'] = (X['temperatureFirstHalfPlanetRotation'] - 32) / 1.8 # to Celsius
+# X['waterStreamDistanceX'] = X['waterStreamDistanceX'] * 0.3048 # to meters
 
-# One-hot encoding
-X = pd.get_dummies(X, prefix=['cover', 'rockSize'], columns = ['cover', 'rockSize'], drop_first=True)
-X = pd.get_dummies(X, prefix=['planetSection', 'geoZone', 'magmaConcentrationDistance'], columns = ['planetSection', 'geoZone', 'magmaConcentrationDistance'], drop_first=False)
+# # One-hot encoding
+# X = pd.get_dummies(X, prefix=['cover', 'rockSize'], columns = ['cover', 'rockSize'], drop_first=True)
+# X = pd.get_dummies(X, prefix=['planetSection', 'geoZone', 'magmaConcentrationDistance'], columns = ['planetSection', 'geoZone', 'magmaConcentrationDistance'], drop_first=False)
 
-# Ordinal encoding
-X['climaticZone'] = OrdinalEncoder().fit_transform(X[['climaticZone']])
+# # Ordinal encoding
+# X['climaticZone'] = OrdinalEncoder().fit_transform(X[['climaticZone']])
 
-# New mass column
-X['mass'] = X['mineralDensity']/(100*100*X['detectionDepth'])
+# # New mass column
+# X['mass'] = X['mineralDensity']/(100*100*X['detectionDepth'])
 
 
-new_imputer = ColumnTransformer([
-        ("temperatureFirstHalfPlanetRotation", make_pipeline(IterativeImputer(missing_values=-999.0, estimator=RandomForestRegressor()), StandardScaler()), ['temperatureFirstHalfPlanetRotation']),
-        ("temperatureSecondHalfPlanetRotation", StandardScaler(), ['temperatureSecondHalfPlanetRotation']),
-        ("waterStreamDistanceX", StandardScaler(), ['waterStreamDistanceX']),
-        ("waterStreamDistanceY", StandardScaler(), ['waterStreamDistanceY']),
-        ("mineralDensity", make_pipeline(IterativeImputer(missing_values=-999.0, estimator=RandomForestRegressor()), StandardScaler()), ['mineralDensity']),
-        ("detectionDepth", StandardScaler(), ['detectionDepth']),
-        ("longitude", StandardScaler(), ['longitude']),
-        ('mass', StandardScaler(), ['mass'])
-    ],
-    verbose_feature_names_out=False, remainder='passthrough'
-)
-
-preprocessors = [new_imputer]
 
 
 def main(X, y):
 
-    # mlflow.sklearn.autolog()
-
-    # for preprocessor in preprocessors:
-    #     print(retrieve_name(preprocessor))
-
-    #     for model in models:
-    #         model_name = type(model).__name__
-    #         print(model_name)
-
-    #         mlflow.set_experiment(model_name)
-
-    #         grid = GridSearchCV(model, cv=10, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
-    #             param_grid=params[model_name]
-    #         )
-
-    #         with mlflow.start_run(run_name=retrieve_name(preprocessor)) as run:
-    #             grid.fit(preprocessor.fit_transform(X), y)
-
-    
     for preprocessor in preprocessors:
         print(retrieve_name(preprocessor))
 
@@ -624,26 +624,42 @@ def main(X, y):
             pipe = Pipeline([
                 ('preprocessor', preprocessor),
                 ('createVariables', CreateVariables()),
-                ('selector', SelectKBest(mutual_info_classif)),
+                # ('selector', SelectKBest(mutual_info_classif)),
                 ('pca', PCA()),
                 ('model', model)
             ])
 
             params[model_name].update(pca_params)
-            params[model_name].update({
-                'selector__k': [5, 10, 20, 25, 28] # 28 max
-            }) # feature selector
+            # params[model_name].update({
+            #     'selector__k': [5, 10, 20, 25, 28] # 28 max
+            # }) # feature selector
 
             grid = GridSearchCV(pipe, cv=10, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
                 param_grid=params[model_name]
             )
-
-            # grid = RandomizedSearchCV(pipe, cv=10, scoring=scores, error_score='raise', return_train_score=True, n_jobs=-1, verbose=4, refit=refit_metric,
-            #     param_distributions=params[model_name]
-            # )
 
             with mlflow.start_run(run_name=retrieve_name(preprocessor)) as run:
                 grid.fit(X, y)
 
 
 main(X, y)
+
+
+
+
+###################### PRUEBA MODELO CREADO
+
+# X_test = test.copy()
+# X_test['rockSize'] = X_test['rockSize'].map(rockSizeMapping) # no parece hacer demasiado
+# X_test = X_test.drop(['id'], axis=1)
+
+# import mlflow
+# logged_model = 'file:///home/acampillos/Desktop/Projects/edrvass/edrvass/mlruns/1/343cafc6456e4075bf8a68137ee20fd3/artifacts/best_estimator'
+
+# # Load model as a PyFuncModel.
+# loaded_model = mlflow.pyfunc.load_model(logged_model)
+
+# # Predict on a Pandas DataFrame.
+# import pandas as pd
+# iterativeImputer_preprocessor.fit_transform(test)
+# print(loaded_model.predict(pd.DataFrame(X_test))[:6])
