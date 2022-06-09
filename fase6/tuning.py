@@ -15,8 +15,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.neural_network import MLPClassifier
-# import autosklearn.classification
-# from autosklearn.metrics import accuracy
+import autosklearn.classification
+from autosklearn.metrics import accuracy
 
 
 from xgboost import XGBClassifier
@@ -539,10 +539,11 @@ xgboost_params = {
 }
 
 mlp_params = {
-    'model__solver': ['lbfgs', 'sgd', 'adam'],
-    'model__max_iter': [1000],
-    'model__learning_rate': ['constant', 'invscaling', 'adaptive']
-}
+    'model__solver': ['lbfgs'], 
+    'model__max_iter': [1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000 ], 
+    'model__alpha': 10.0 ** -np.arange(1, 10), 
+    'model__hidden_layer_sizes':np.arange(10, 15), 
+    'model__random_state':[0,1,2,3,4,5,6,7,8,9]}
 
 pca_params = {
     'pca__n_components': [None]
@@ -642,7 +643,7 @@ def main(X, y):
                 grid.fit(X, y)
 
 
-main(X, y)
+# main(X, y)
 
 
 
