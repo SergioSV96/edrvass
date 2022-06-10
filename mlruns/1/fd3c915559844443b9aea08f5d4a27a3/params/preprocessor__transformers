@@ -1,4 +1,0 @@
-[('temperatureFirstHalfPlanetRotation', Pipeline(steps=[('knnimputer',
-                 KNNImputer(missing_values=-999.0, weights='distance')),
-                ('functiontransformer',
-                 FunctionTransformer(feature_names_out='one-to-...

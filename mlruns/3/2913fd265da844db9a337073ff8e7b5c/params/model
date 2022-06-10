@@ -1,4 +1,0 @@
-XGBClassifier(base_score=None, booster=None, callbacks=None,
-              colsample_bylevel=None, colsample_bynode=None,
-              colsample_bytree=None, early_stopping_rounds=None,
-              enable_categorical=False, eval_metric=None, ga...

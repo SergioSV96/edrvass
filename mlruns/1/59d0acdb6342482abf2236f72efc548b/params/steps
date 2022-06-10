@@ -1,4 +1,0 @@
-[('preprocessor', ColumnTransformer(remainder='passthrough',
-                  transformers=[('temperatureFirstHalfPlanetRotation',
-                                 Pipeline(steps=[('iterativeimputer',
-                                             ...

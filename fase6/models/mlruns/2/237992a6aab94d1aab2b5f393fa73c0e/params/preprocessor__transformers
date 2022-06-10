@@ -1,0 +1,4 @@
+[('temperatureFirstHalfPlanetRotation', Pipeline(steps=[('iterativeimputer', IterativeImputer(missing_values=-999.0)),
+                ('functiontransformer',
+                 FunctionTransformer(feature_names_out='one-to-one',
+                   ...

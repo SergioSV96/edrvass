@@ -1,0 +1,15 @@
+artifact_uri: file:///home/sergio/repos/edrvass/fase6/models/mlruns/2/bdb08d2b48194e28be59de221bf47186/artifacts
+end_time: 1651175673180
+entry_point_name: ''
+experiment_id: '2'
+lifecycle_stage: active
+name: ''
+run_id: bdb08d2b48194e28be59de221bf47186
+run_uuid: bdb08d2b48194e28be59de221bf47186
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1651175669550
+status: 3
+tags: []
+user_id: sergio

@@ -1,1 +1,0 @@
-[('knnimputer', KNNImputer(missing_values=-999.0, weights='distance')), ('minmaxscaler', MinMaxScaler())]

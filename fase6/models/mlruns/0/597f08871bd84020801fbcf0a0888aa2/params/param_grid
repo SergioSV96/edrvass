@@ -1,0 +1,1 @@
+[{'pca__n_components': [None], 'model': [KNeighborsClassifier()], 'model__n_neighbors': [7], 'model__weights': ['distance'], 'model__metric': ['manhattan']}]

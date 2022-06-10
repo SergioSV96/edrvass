@@ -1,4 +1,0 @@
-Pipeline(steps=[('preprocessor',
-                 ColumnTransformer(remainder='passthrough',
-                                   transformers=[('temperatureFirstHalfPlanetRotation',
-                                                  Pipeline(steps=[...

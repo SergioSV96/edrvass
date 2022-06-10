@@ -1,0 +1,26 @@
+artifact_path: best_estimator
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    python_version: 3.7.13
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.1.dev0
+mlflow_version: 1.25.1
+model_uuid: 162da352aaf1438f974a3344dbfe1460
+run_id: 687c601cd489480cb1686808ae08a68d
+signature:
+  inputs: '[{"name": "climaticZone", "type": "long"}, {"name": "planetSection", "type":
+    "string"}, {"name": "temperatureSecondHalfPlanetRotation", "type": "double"},
+    {"name": "temperatureFirstHalfPlanetRotation", "type": "double"}, {"name": "mineralDensity",
+    "type": "double"}, {"name": "geoZone", "type": "long"}, {"name": "longitude",
+    "type": "double"}, {"name": "rockSize", "type": "long"}, {"name": "waterStreamDistanceY",
+    "type": "double"}, {"name": "cover", "type": "long"}, {"name": "magmaConcentrationDistance",
+    "type": "string"}, {"name": "waterStreamDistanceX", "type": "double"}, {"name":
+    "detectionDepth", "type": "double"}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+utc_time_created: '2022-04-28 15:31:46.805578'

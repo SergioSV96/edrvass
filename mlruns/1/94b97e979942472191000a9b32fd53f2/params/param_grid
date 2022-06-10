@@ -1,1 +1,0 @@
-{'model__n_neighbors': [5, 8, 10, 12, 15, 20], 'model__weights': ['uniform', 'distance'], 'model__metric': ['euclidean', 'manhattan'], 'pca__n_components': [None], 'selector__k': [5, 10, 20, 30]}

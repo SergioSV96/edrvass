@@ -1,4 +1,0 @@
-ColumnTransformer(remainder='passthrough',
-                  transformers=[('temperatureFirstHalfPlanetRotation',
-                                 Pipeline(steps=[('functiontransformer',
-                                                  FunctionTr...

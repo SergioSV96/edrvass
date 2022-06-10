@@ -1,4 +1,0 @@
-Pipeline(steps=[('functiontransformer',
-                 FunctionTransformer(feature_names_out='one-to-one',
-                                     func=<function log_numeric at 0x7fd9a791db80>)),
-                ('standardscaler', StandardScaler())])
