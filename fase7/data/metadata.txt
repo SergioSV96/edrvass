@@ -1,0 +1,39 @@
+How to land the Star Cruiser 42
+
+# Context
+
+This dataset contains information about simulations of landing a spaceship in a 2D environment.
+This information can be used to determine the efficiency function in order to evaluate the best actions possible in a future landing.
+
+
+# Metadata
+Number of train files: 9513
+Number of test files: 2000
+Number of variables: 13
+Target variable: efficiency
+
+
+File variable details:
+
+- x_pos # The position of the ship on the X axis, in units relative to the landing platform.
+- y_pos # The position of the ship on the Y axis, in units relative to the landing platform.
+- x_vel # Velocity of the ship on the X axis.
+- y_vel # Velocity of the ship on the Y axis.
+- angle # The angle of the spaceship in radians.
+- ang_vel # The angular velocity of the spaceship.
+- leg_1 # Boolean that represent whether leg 1 is in contact with the ground or not
+- leg_2 # Boolean that represent whether leg 2 is in contact with the ground or not
+- main_booster #  The throttle of the main engine.
+- lat_booster # The throttle of the lateral boosters.
+
+The first 6 variables determine the state and each step, and the last two (main_booster and lat_booster) are the actions taken in response
+to that state, whose repercussions will be seen in the following step.
+
+Experiment variable details:
+- gravity # The magnitude of the gravity acceleration. A value of 0 means that the system didn't register the real value.
+- wind_power # The maximum magnitude of linear wind applied to the spaceship. A value of 0 means that the system didn't register the real value.
+- turbulences # The maximum magnitude of rotational wind applied to the spaceship.
+
+Target variable detail
+    - efficiency # An internal function of the simulator to evaluate the quality of the landing.
+    
