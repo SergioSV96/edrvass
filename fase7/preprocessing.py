@@ -51,6 +51,8 @@ def get_experiments_stats(series_path, experiments_summary_path):
     ----------
     series_path : str
         The path to the folder containing the csv files with the series.
+    experiments_summary_path : str
+        The path to the experiments summary xlsx file.
     
     Returns
     ----------
@@ -151,7 +153,7 @@ def transform_data(series_path, experiments_summary_path, target_variable=None):
 
     X = []
     y = []
-    for filename in experiment_summary.index:
+    for filename in experiments_summary.index:
         series_file = os.path.join(series_path, filename)
         experiment_series = pd.read_csv(series_file)
         
